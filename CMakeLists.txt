@@ -8,5 +8,6 @@ cmake_minimum_required(VERSION 3.1)
 project(absurdle C)
 set(CMAKE_C_STANDARD 90)
 
+include_directories("include")
 add_executable(main src/main.c)
 
