@@ -9,12 +9,28 @@
 typedef enum {false, true} bool;
 
 #define GUESS_SIZE 6
-#define WORD_LIST_PATH "../words"
+#define MAX_BUCKETS 243
+#define MAX_ANSWER_COUNT 2315
+#define WORD_LIST_PATH "../lists/words"
+#define ANSWER_LIST_PATH "../lists/answers"
 
-enum guess_exit_codes {
-    GUESS_OK,
+#define NONE 0
+#define PART 1
+#define GOOD 2
+
+enum absurdle_code {
+    ABSURDLE_OK,
     GUESS_QUIT,
     GUESS_NOT_WORD,
+    GUESS_TOO_SHORT,
+    GUESS_TOO_LONG,
+    CHECK_NO_LIST
+};
+
+struct bucket {
+    unsigned char *res;
+    char **words;
+    unsigned long size;
 };
 
 int run();
