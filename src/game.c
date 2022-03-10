@@ -34,7 +34,7 @@ enum absurdle_code check_guess(const char *guess) {
     while (!feof(f)) {
         found = true;
         fgets(word, GUESS_SIZE, f);
-        if (strncmp(guess, word, 5) == 0) break;
+        if (!strncmp(guess, word, 5)) break;
         found = false;
     }
     fclose(f);
@@ -48,7 +48,7 @@ enum absurdle_code check_guess(const char *guess) {
     while (!feof(f)) {
         found = true;
         fgets(word, GUESS_SIZE, f);
-        if (strncmp(guess, word, 5) == 0) break;
+        if (!strncmp(guess, word, 5)) break;
         found = false;
     }
     fclose(f);
@@ -82,6 +82,14 @@ enum absurdle_code get_guess(char *ret) {
         buf[i] = c;
         ++i;
     }
+
+    if (!strncmp(buf, "exit", 4) ||
+        !strncmp(buf, "stop", 4) ||
+        !strncmp(buf, "quit", 4)) {
+            stop();
+            return GUESS_QUIT;
+    }
+
     if (i < GUESS_SIZE-1) {
         return GUESS_TOO_SHORT;
     } else if (too_long) {
@@ -117,11 +125,10 @@ enum absurdle_code init_bucket(struct bucket **b) {
         word[strcspn(word, "\n")] = '\0';
         buc->words[i].value = strdup(word);
         buc->words[i].result = NULL;
-        strcpy(word, "");
+        memset(word, 0, GUESS_SIZE+2);
     }
     fclose(f);
     buc->size = i;
-    printf("%d\n", i);
 
     *b = buc;
 
@@ -170,7 +177,7 @@ enum absurdle_code gen_buckets(const char *guess, struct bucket **b) {
     for (i = 0; i < ret->size; ++i) {
         cur_bucket_val = 0;
         for (j = 0; j < ret->size; ++j) {
-            if (strncmp(ret->words[i].result, ret->words[j].result, GUESS_SIZE) == 0) {
+            if (!strncmp(ret->words[i].result, ret->words[j].result, GUESS_SIZE)) {
                 ++cur_bucket_val;
             }
         }
@@ -205,16 +212,16 @@ enum absurdle_code gen_buckets(const char *guess, struct bucket **b) {
             }
             if (cur_sum < pre_sum) {
                 max_bucket_val = cur_bucket_val;
-                strcpy(res, ret->words[i].result);
+                strncpy(res, ret->words[i].result, GUESS_SIZE);
             }
         }
         else if (cur_bucket_val > max_bucket_val) {
             max_bucket_val = cur_bucket_val;
-            strcpy(res, ret->words[i].result);
+            strncpy(res, ret->words[i].result, GUESS_SIZE);
         }
     }
     for (i = 0, j = 0; i < ret->size; ++i) {
-        if (strncmp(res, ret->words[i].result, GUESS_SIZE) != 0) continue;
+        if (strncmp(res, ret->words[i].result, GUESS_SIZE)) continue;
         ret_words[j].value = strdup(ret->words[i].value);
         ret_words[j].result = strdup(ret->words[i].result);
         ++j;
@@ -264,14 +271,16 @@ int run() {
         }
         if (exit == GUESS_QUIT) continue;
         gen_buckets(guess, &buc); /* generate buckets and select smallest one */
-        print_result(buc->result);
-        /* show results to player */
+        print_result(buc->result); /* show results to player */
 
-        /* check win condition */
+        if (!strncmp(buc->result, WIN, GUESS_SIZE-1)) { /* check win condition */
+
+        }
         /*ask to play again */
     }
     free(guess);
     wordlist_free(buc->words, buc->size);
+    free(buc->result);
     free(buc);
     printf("Game Over\n");
     return 0;
