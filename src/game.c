@@ -11,12 +11,22 @@
 
 bool stop_game;
 
+void wordlist_free(struct word *list, const size_t size) {
+    int i = 0;
+
+    for (i = 0; i < size; ++i) {
+        free((void *) list[i].value);
+        free((void *) list[i].result);
+    }
+    if (i != 0) free(list);
+}
+
 enum absurdle_code check_guess(const char *guess) {
     char *word = malloc(GUESS_SIZE);
     bool found;
     FILE *f;
 
-    f = fopen(WORD_LIST_PATH, "r");
+    f = fopen(ANSWER_LIST_PATH, "r");
     if (f == NULL) {
         printf("word list file could not be located");
         return CHECK_NO_LIST;
@@ -28,8 +38,9 @@ enum absurdle_code check_guess(const char *guess) {
         found = false;
     }
     fclose(f);
+    if (found) goto ret;
 
-    f = fopen(ANSWER_LIST_PATH, "r");
+    f = fopen(WORD_LIST_PATH, "r");
     if (f == NULL) {
         printf("answer list file could not be located");
         return CHECK_NO_LIST;
@@ -42,13 +53,11 @@ enum absurdle_code check_guess(const char *guess) {
     }
     fclose(f);
 
+ret:
     free(word);
     return (found ? ABSURDLE_OK : GUESS_NOT_WORD);
 }
 
-/**
- * get guess
- */
 enum absurdle_code get_guess(char *ret) {
     char c = 0,
          buf[GUESS_SIZE] = "";
@@ -83,91 +92,163 @@ enum absurdle_code get_guess(char *ret) {
     return check_guess(ret);
 }
 
-void print_result(unsigned char *res) {
-    int i = 0;
-    char out[GUESS_SIZE] = { 0 };
-    for (i = 0; i < GUESS_SIZE-1; ++i) {
-        printf("%d\n", i);
-        if (res[i] == GOOD) out[i] = 'a';
-        else if (res[i] == PART) out[i] = 'b';
-        else if (res[i] == NONE) out[i] = 'c';
-    }
-    printf("%s\n", out);
+void print_result(char *res) {
+    if (res == NULL) return;
+    printf("%s\n", res);
 }
 
-enum absurdle_code gen_buckets(const char *guess, struct bucket *ret) {
+enum absurdle_code init_bucket(struct bucket **b) {
+    int i = 0;
+    FILE *f = NULL;
+    char word[GUESS_SIZE+2] = "";
+    static struct bucket *buc;
+
+    buc = (struct bucket *) malloc(sizeof(struct bucket));
+    buc->words = (struct word *) malloc(MAX_ANSWER_COUNT * sizeof(struct word));
+
+    f = fopen(ANSWER_LIST_PATH, "r");
+    if (f == NULL) {
+        return CHECK_NO_LIST;
+    }
+
+    for (i = 0; !feof(f); ++i) {
+        fgets(word, GUESS_SIZE+1, f);
+        if (i >= MAX_ANSWER_COUNT) break;
+        word[strcspn(word, "\n")] = '\0';
+        buc->words[i].value = strdup(word);
+        buc->words[i].result = NULL;
+        strcpy(word, "");
+    }
+    fclose(f);
+    buc->size = i;
+    printf("%d\n", i);
+
+    *b = buc;
+
+    return ABSURDLE_OK;
+}
+
+enum absurdle_code gen_buckets(const char *guess, struct bucket **b) {
     int i = 0,
         j = 0,
         k = 0,
-        max_bucket_val = 0;
-    static unsigned char res[GUESS_SIZE] = { 0 };
+        cur_bucket_val = 0,
+        max_bucket_val = 0,
+        freq[26] = { 0 };
+    char res[GUESS_SIZE] = { 0 };
+    struct bucket *ret = *b;
+    struct word *ret_words = (struct word *) malloc(MAX_ANSWER_COUNT * sizeof(struct word));
+
     for (i = 0; i < ret->size; ++i) {
-        printf("%s\n", ret->words[i]);
-        for (j = 0; j < guess[j] != '\0'; ++j) {
-            if (guess[j] == ret->words[i][j]) {
-                res[j] = GOOD;
-                continue;
-            }
-            for (k = 0; k < GUESS_SIZE-1; ++k) {
-                if (guess[j] == ret->words[i][j]) {
-                    res[j] = PART;
-                    break;
-                }
+        for (j = 0; j < 26; ++j) {
+            freq[j] = 0;
+        }
+        for (j = 0; ret->words[i].value[j] != '\0'; ++j) {
+            freq[ret->words[i].value[j]-'a']++;
+        }
+        for (j = 0; ret->words[i].value[j] != '\0'; ++j) {
+            if (freq[guess[j]-'a'] > 0) {
+                res[j] = PART;
+                freq[guess[j]-'a']--;
+            } else {
+                res[j] = NONE;
             }
         }
-        print_result(res);
+        for (j = 0; guess[j] != '\0'; ++j) {
+            if (guess[j] == ret->words[i].value[j]) {
+                res[j] = GOOD;
+                freq[guess[j]-'a']--;
+                continue;
+            }
+        }
+
+        if (ret->words[i].result != NULL) free(ret->words[i].result);
+        ret->words[i].result = strdup(res);
         memset(res, 0, GUESS_SIZE);
     }
+
+    for (i = 0; i < ret->size; ++i) {
+        cur_bucket_val = 0;
+        for (j = 0; j < ret->size; ++j) {
+            if (strncmp(ret->words[i].result, ret->words[j].result, GUESS_SIZE) == 0) {
+                ++cur_bucket_val;
+            }
+        }
+        if (cur_bucket_val == max_bucket_val) {
+            int cur_sum = 0;
+            int pre_sum = 0;
+            for (j = 0; j < GUESS_SIZE; ++j) {
+                switch (ret->words[i].result[j]) {
+                    case GOOD:
+                        cur_sum += 3;
+                        break;
+                    case PART:
+                        cur_sum += 1;
+                        break;
+                    case NONE:
+                        cur_sum += 0;
+                        break;
+                }
+            }
+            for (j = 0; j < GUESS_SIZE; ++j) {
+                switch (res[j]) {
+                    case GOOD:
+                        pre_sum += 3;
+                        break;
+                    case PART:
+                        pre_sum += 1;
+                        break;
+                    case NONE:
+                        pre_sum += 0;
+                        break;
+                }
+            }
+            if (cur_sum < pre_sum) {
+                max_bucket_val = cur_bucket_val;
+                strcpy(res, ret->words[i].result);
+            }
+        }
+        else if (cur_bucket_val > max_bucket_val) {
+            max_bucket_val = cur_bucket_val;
+            strcpy(res, ret->words[i].result);
+        }
+    }
+    for (i = 0, j = 0; i < ret->size; ++i) {
+        if (strncmp(res, ret->words[i].result, GUESS_SIZE) != 0) continue;
+        ret_words[j].value = strdup(ret->words[i].value);
+        ret_words[j].result = strdup(ret->words[i].result);
+        ++j;
+    }
+    wordlist_free(ret->words, ret->size);
+    ret->words = ret_words;
+    ret->result = strdup(res);
+    ret->size = j;
+    *b = ret;
 
     return max_bucket_val;
 }
 
 
-void wordlist_free(char **list, const size_t size) {
-    int i = 0;
-
-    for (i = 0; i < size; ++i) {
-        free(list[i]);
-        list[i] = NULL;
-    }
-}
-
 /**
  * start the game
  */
 int run() {
-    char *guess = NULL,
-         *word;
-    int i = 0,
-        exit = 0;
+    char *guess = NULL;
+    int exit = 0;
     struct bucket *buc = NULL;
-    FILE *f = NULL;
 
     stop_game = false;
     guess = (char *) malloc(GUESS_SIZE);
-    word  = (char *) malloc(GUESS_SIZE+2);
-    buc   = (struct bucket *) malloc(MAX_BUCKETS * sizeof(struct bucket));
-    buc->words = (char **) malloc((GUESS_SIZE+2) * MAX_ANSWER_COUNT);
-    f = fopen(ANSWER_LIST_PATH, "r");
-    if (f == NULL) {
-        return CHECK_NO_LIST;
-    }
-    for (i = 0; !feof(f); ++i) {
-        fgets(word, GUESS_SIZE+1, f);
-        if (i >= MAX_ANSWER_COUNT) break;
-        buc->words[i] = strdup(word);
-        strcpy(word, "");
-    }
-    printf("%d\n", i);
-    fclose(f);
-    buc->size = i;
+
+    init_bucket(&buc);
+    buc->result = NULL;
 
     printf("Guess a five letter word!\n");
     while (!stop_game) {
-        strcpy(guess, "");
+        memset(guess, 0, GUESS_SIZE);
 
         exit = get_guess(guess); /* get guess */
-        while (exit != 0 && !stop_game) {
+        while (exit != ABSURDLE_OK && exit != GUESS_QUIT && !stop_game) {
             switch (exit) {
                 case GUESS_NOT_WORD:
                     printf("Not in word list, guess again\n");
@@ -181,17 +262,16 @@ int run() {
             }
             exit = get_guess(guess); /* get guess */
         }
-        gen_buckets(guess, buc); /* generate buckets and select smallest one */
-        print_result(buc->res);
+        if (exit == GUESS_QUIT) continue;
+        gen_buckets(guess, &buc); /* generate buckets and select smallest one */
+        print_result(buc->result);
         /* show results to player */
 
         /* check win condition */
         /*ask to play again */
     }
     free(guess);
-    free(word);
-    wordlist_free(buc->words, MAX_ANSWER_COUNT);
-    free(buc->words);
+    wordlist_free(buc->words, buc->size);
     free(buc);
     printf("Game Over\n");
     return 0;

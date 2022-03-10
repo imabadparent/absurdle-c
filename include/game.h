@@ -14,9 +14,9 @@ typedef enum {false, true} bool;
 #define WORD_LIST_PATH "../lists/words"
 #define ANSWER_LIST_PATH "../lists/answers"
 
-#define NONE 0
-#define PART 1
-#define GOOD 2
+#define NONE '.'
+#define PART '?'
+#define GOOD '!'
 
 enum absurdle_code {
     ABSURDLE_OK,
@@ -27,9 +27,14 @@ enum absurdle_code {
     CHECK_NO_LIST
 };
 
+struct word {
+    const char *value;
+    char *result;
+};
+
 struct bucket {
-    unsigned char *res;
-    char **words;
+    char *result;
+    struct word *words;
     unsigned long size;
 };
 
