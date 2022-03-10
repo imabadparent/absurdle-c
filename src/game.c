@@ -152,19 +152,18 @@ enum absurdle_code gen_buckets(const char *guess, struct bucket **b) {
         for (j = 0; ret->words[i].value[j] != '\0'; ++j) {
             freq[ret->words[i].value[j]-'a']++;
         }
-        for (j = 0; ret->words[i].value[j] != '\0'; ++j) {
+        for (j = 0; guess[j] != '\0'; ++j) {
+            if (guess[j] != ret->words[i].value[j]) continue;
+            res[j] = GOOD;
+            freq[guess[j]-'a']--;
+        }
+        for (j = 0; guess[j] != '\0'; ++j) {
+            if (res[j] != 0) continue;
             if (freq[guess[j]-'a'] > 0) {
                 res[j] = PART;
                 freq[guess[j]-'a']--;
             } else {
                 res[j] = NONE;
-            }
-        }
-        for (j = 0; guess[j] != '\0'; ++j) {
-            if (guess[j] == ret->words[i].value[j]) {
-                res[j] = GOOD;
-                freq[guess[j]-'a']--;
-                continue;
             }
         }
 
