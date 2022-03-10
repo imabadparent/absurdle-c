@@ -21,6 +21,8 @@ typedef enum {false, true} bool;
 
 enum absurdle_code {
     ABSURDLE_OK,
+    ABSURDLE_WIN,
+    ABSURDLE_QUIT,
     GUESS_QUIT,
     GUESS_NOT_WORD,
     GUESS_TOO_SHORT,

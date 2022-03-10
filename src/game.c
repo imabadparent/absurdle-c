@@ -145,7 +145,6 @@ enum absurdle_code gen_buckets(const char *guess, struct bucket **b) {
     char res[GUESS_SIZE] = { 0 };
     struct bucket *ret = *b;
     struct word *ret_words = (struct word *) malloc(MAX_ANSWER_COUNT * sizeof(struct word));
-
     for (i = 0; i < ret->size; ++i) {
         for (j = 0; j < 26; ++j) {
             freq[j] = 0;
@@ -274,16 +273,15 @@ int run() {
         print_result(buc->result); /* show results to player */
 
         if (!strncmp(buc->result, WIN, GUESS_SIZE-1)) { /* check win condition */
-
+            printf("You win!\n");
+            return ABSURDLE_WIN;
         }
-        /*ask to play again */
     }
     free(guess);
     wordlist_free(buc->words, buc->size);
     free(buc->result);
     free(buc);
-    printf("Game Over\n");
-    return 0;
+    return ABSURDLE_QUIT;
 }
 
 /**
