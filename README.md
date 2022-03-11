@@ -14,6 +14,9 @@ correct position (This is as if the letter were yellow in Wordle). A '``!``'
 indicates that the corresponding letter is contained in the word and in the
 correct position (This is as if the letter were green in Wordle).
 
+TL;DR for Wordle players: '``.``' is grey, '``?``' is yellow, and "``!``" is
+green.
+
 ## What it is
 
 This is a clone of the game [Absurdle](https://qntm.org/absurdle), which itself
