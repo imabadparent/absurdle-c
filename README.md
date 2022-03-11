@@ -36,5 +36,5 @@ there will be two buckets of equal size that are both larger than every other
 bucket. When this happens, my version attempts to select the bucket with the
 response that provides the least amount of information to the player. This is
 done by giving weights to each element in the response. For example, if the two
-buckets had a response of "!!.!!" or ".?...", the second bucket would be
+buckets had a response of "``!!.!!``" or "``.?...``", the second bucket would be
 selected because it gives the player the least amount of useful information.
