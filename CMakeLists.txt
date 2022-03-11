@@ -9,5 +9,7 @@ project(absurdle C)
 set(CMAKE_C_STANDARD 90)
 
 include_directories("include/")
-add_executable(main src/main.c src/game.c)
+add_executable(absurdle src/main.c src/game.c)
+install(TARGETS absurdle DESTINATION bin)
+install(FILES lists/answers lists/words DESTINATION share/absurdle-c)
 

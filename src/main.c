@@ -16,11 +16,9 @@ int main(void) {
     while (true) {
     exit = run();
         if (exit == ABSURDLE_WIN) {
-            printf("Would you like to play again? [y/N]\n");
+            printf("Would you like to play again? [Y/n]\n");
             fgets(input, 4, stdin);
-            if (input[0] == '\0'||
-                input[0] == EOF ||
-                input[0] == 'n') break;
+            if (input[0] == 'N' || input[0] == 'n') break;
         }
         else if (exit == ABSURDLE_QUIT) break;
     }
