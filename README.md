@@ -5,7 +5,7 @@ A remake of the game Absurdle in C
 
 The game starts by asking the player to guess a word. The player resonds by
 inputing a 5-letter word. This word is then analysed and a response is given
-(for more info on the analysis, see [How it works](##How-it-works)). The
+(for more info on the analysis, see [How it works](#How-it-works)). The
 response will contain a mixture of '``.``', '``?``', and '``!``'. A '``.``'
 indicates that the corresponding letter in the guessed word is not contained in
 the solution (This is as if the letter were greyed out in Wordle). A '``?``'
