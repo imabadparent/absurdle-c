@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "game.h"
+#include "config.h"
 
 bool stop_game;
 
