@@ -1,7 +1,34 @@
 # Absurdle-C
-A remake of the game Absurdle in C
+A remake of the game Absurdle written in ANSI C (C89/C90)
 
-## How to play
+## How to install
+
+If you are on Arch Linux, you can download [PKGBUILD](packs/arch/PKGBUILD), and
+run the following command:
+```sh
+makepkg -sci
+```
+Feel free to submit this to the AUR, but I likely won't.
+
+If you are on another version of Linux, or would rather build the program
+yourself, you can use git and cmake to build it with the following commands:
+```sh
+git clone https://github.com/imabadparent/absurdle-c.git
+cd absurdle-c
+cmake -B build
+cmake --build build
+```
+followed by this command run as root
+```sh
+cmake --install build
+```
+This will install the binary to ``/usr/local/bin`` and install the wordlists to
+``/usr/local/share/absurlde-c``.
+
+I have not tested Windows or macOS, but I imaghine it would work as long as you
+can use cmake, as I have not used any OS-specific features.
+
+## How to playe
 
 The game starts by asking the player to guess a word. The player resonds by
 inputing a 5-letter word. This word is then analysed and a response is given
