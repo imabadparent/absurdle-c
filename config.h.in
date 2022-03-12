@@ -1,0 +1,3 @@
+#ifndef CONFIG_H
+#cmakedefine DATADIR "@DATA_DIR@"
+#endif

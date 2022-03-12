@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "game.h"
+#include "config.h"
 
 int main(void) {
     int exit = 0;
