@@ -28,7 +28,7 @@ This will install the binary to ``/usr/local/bin`` and install the wordlists to
 I have not tested Windows or macOS, but I imaghine it would work as long as you
 can use cmake, as I have not used any OS-specific features.
 
-## How to playe
+## How to play
 
 The game starts by asking the player to guess a word. The player resonds by
 inputing a 5-letter word. This word is then analysed and a response is given
