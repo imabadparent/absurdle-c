@@ -10,9 +10,9 @@ set(CMAKE_C_STANDARD 90)
 
 include_directories("include/" "${PROJECT_BINARY_DIR}")
 
-if ( NOT( DEFINED DATA_DIR ) )
-    set(DATA_DIR ${CMAKE_INSTALL_PREFIX}/share/absurdle-c)
-endif()
+#if ( NOT( DEFINED DATA_DIR ) )
+set(DATA_DIR ${CMAKE_INSTALL_PREFIX}/share/absurdle-c)
+#endif()
 
 configure_file(config.h.in config.h)
 
