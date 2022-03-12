@@ -26,7 +26,7 @@ enum absurdle_code check_guess(const char *guess) {
     bool found;
     FILE *f;
 
-    f = fopen(ANSWER_LIST_PATH, "r");
+    f = fopen(DATADIR"/answers", "r");
     if (f == NULL) {
         printf("word list file could not be located");
         return CHECK_NO_LIST;
@@ -40,7 +40,7 @@ enum absurdle_code check_guess(const char *guess) {
     fclose(f);
     if (found) goto ret;
 
-    f = fopen(WORD_LIST_PATH, "r");
+    f = fopen(DATADIR"/words", "r");
     if (f == NULL) {
         printf("answer list file could not be located");
         return CHECK_NO_LIST;
@@ -114,7 +114,7 @@ enum absurdle_code init_bucket(struct bucket **b) {
     buc = (struct bucket *) malloc(sizeof(struct bucket));
     buc->words = (struct word *) malloc(MAX_ANSWER_COUNT * sizeof(struct word));
 
-    f = fopen(ANSWER_LIST_PATH, "r");
+    f = fopen(DATADIR"/answers", "r");
     if (f == NULL) {
         return CHECK_NO_LIST;
     }

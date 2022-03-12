@@ -11,8 +11,7 @@ typedef enum {false, true} bool;
 #define GUESS_SIZE 6
 #define MAX_BUCKETS 243
 #define MAX_ANSWER_COUNT 2312
-#define WORD_LIST_PATH "../lists/words"
-#define ANSWER_LIST_PATH "../lists/answers"
+#define DATADIR "/usr/local/share/absurdle-c"
 
 #define NONE '.'
 #define PART '?'
