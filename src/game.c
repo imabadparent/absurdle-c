@@ -75,7 +75,7 @@ enum absurdle_code get_guess(char *ret) {
         }
         if (c >= 'A' && c <= 'Z') c = c - 32;
         if (c < 'a' || c > 'z') continue;
-        if (i >= GUESS_SIZE) {
+        if (i >= GUESS_SIZE-1) {
             too_long = true;
             continue;
         }
