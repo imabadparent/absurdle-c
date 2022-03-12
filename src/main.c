@@ -10,7 +10,6 @@
 #include "game.h"
 
 int main(void) {
-    printf("%s\n", DATADIR);
     int exit = 0;
     char input[4] = "";
 
