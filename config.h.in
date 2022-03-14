@@ -3,4 +3,9 @@
 
 #cmakedefine DATA_DIR "@DATA_DIR@"
 
+#define USE_XDG_CONF_DIR
+#ifndef USE_XDG_CONF_DIR
+#define CONFIG_DIR "/home/name/.config/absurdle-c"
+#endif
+
 #endif
