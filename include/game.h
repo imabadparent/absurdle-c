@@ -6,6 +6,15 @@
 #ifndef GAME_H
 #define GAME_H
 
+#ifdef bool
+#undef bool
+#endif
+#ifdef true
+#undef true
+#endif
+#ifdef false
+#undef false
+#endif
 typedef enum {false, true} bool;
 
 #define GUESS_SIZE 6
@@ -44,7 +53,7 @@ struct options {
     bool force_word;
 };
 
-int run(struct options options);
+int run(struct options options, WINDOW **window);
 int stop();
 
 #endif /* GAME_H */

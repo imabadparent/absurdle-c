@@ -4,6 +4,7 @@
  * @created     : 2022-02-17T08:23:32-0500
  */
 
+#include <ncurses.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -44,6 +45,7 @@ int main(void) {
          *conf_dir = "",
          conf_path[1024] = "";
     struct options opt = { 0 };
+    static WINDOW *win;
 
 
 #ifdef USE_XDG_CONF_DIR
@@ -59,15 +61,23 @@ int main(void) {
 #endif
     read_config(conf_path, &opt);
 
+    win = initscr();
+
     while (true) {
-        exit = run(opt);
+        clear();
+        noecho();
+        refresh();
+        exit = run(opt, &win);
         if (exit == ABSURDLE_WIN) {
-            printf("Would you like to play again? [Y/n]\n");
-            fgets(input, 4, stdin);
+            wprintw(win, "Would you like to play again? [Y/n]\n");
+            echo();
+            refresh();
+            wgetstr(win, input);
             if (input[0] == 'N' || input[0] == 'n') break;
         }
         else if (exit == ABSURDLE_QUIT) break;
     }
+    endwin();
     return EXIT_SUCCESS;
 }
 

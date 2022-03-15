@@ -1,5 +1,5 @@
 /**
- * @author      : styx (styx@$HOSTNAME)
+ * @author      : styx
  * @file        : game
  * @created     : 2022-02-17T08:46:22-0500
  */
@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ncurses.h>
+
 #include "game.h"
 #include "config.h"
 
@@ -14,6 +16,9 @@ bool stop_game;
 
 struct options opt;
 const char *challenge;
+
+WINDOW *root;
+int x, y;
 
 void wordlist_free(struct word *list, const size_t size) {
     int i = 0;
@@ -38,7 +43,7 @@ enum absurdle_code check_guess(const char *guess) {
 
     f = fopen(DATA_DIR"/answers", "r");
     if (f == NULL) {
-        printf("word list file could not be located");
+        wprintw(root, "word list file could not be located");
         return CHECK_NO_LIST;
     }
     while (!feof(f)) {
@@ -52,7 +57,7 @@ enum absurdle_code check_guess(const char *guess) {
 
     f = fopen(DATA_DIR"/words", "r");
     if (f == NULL) {
-        printf("answer list file could not be located");
+        wprintw(root, "answer list file could not be located");
         return CHECK_NO_LIST;
     }
     while (!feof(f)) {
@@ -71,25 +76,61 @@ ret:
 enum absurdle_code get_guess(char *ret) {
     char c = 0,
          buf[GUESS_SIZE] = "";
-    int i = 0;
+    int b = 0,
+        i = 0;
     bool too_long = false;
 
     buf[GUESS_SIZE-1] = '\0';
 
     i = 0;
-    for (c = fgetc(stdin); c != '\0' && c != '\n'; c = fgetc(stdin)) {
-        if (feof(stdin)) {
-            stop();
-            return GUESS_QUIT;
-        }
+    /*for (c = wgetch(root); c != '\0' && c != '\n'; c = wgetch(root)) {
+        //if (feof(stdin)) {
+        //    stop();
+        //    return GUESS_QUIT;
+        //}
         if (c >= 'A' && c <= 'Z') c = c - 32;
         if (c < 'a' || c > 'z') continue;
         if (i >= GUESS_SIZE-1) {
             too_long = true;
-            continue;
+            break;
         }
 
+        wprintw(root, "%c", c);
         buf[i] = c;
+        ++i;
+    }*/
+    i = 0;
+    while (c != '\n') {
+        b = wgetch(root);
+        if (b == 4) {
+            stop();
+            return ABSURDLE_QUIT;
+        }
+        if ((char) b == '\n') {
+            waddch(root, b);
+            refresh();
+            break;
+        }
+        if (b == KEY_BACKSPACE || b == KEY_DC || b == 127) {
+            if (i <= 0) continue;
+            getyx(root, y, x);
+            wmove(root, y, --x);
+            waddch(root, ' ');
+            wmove(root, y, x);
+            --i;
+            refresh();
+            continue;
+        }
+        if (i >= GUESS_SIZE-1) {
+            continue;
+        }
+        c = (char) b;
+        if (c >= 'A' && c <= 'Z') c = c - 32;
+        if (c < 'a' || c > 'z') continue;
+        waddch(root, c);
+        buf[i] = c;
+        refresh();
+
         ++i;
     }
 
@@ -112,7 +153,8 @@ enum absurdle_code get_guess(char *ret) {
 
 void print_result(char *res) {
     if (res == NULL) return;
-    printf("%s\n", res);
+    wprintw(root, "%s\n", res);
+    refresh();
 }
 
 enum absurdle_code init_bucket(struct bucket **b) {
@@ -246,7 +288,7 @@ enum absurdle_code gen_buckets(const char *guess, struct bucket **b) {
 /**
  * start the game
  */
-int run(struct options o) {
+int run(struct options o, WINDOW **win) {
     char *guess = NULL;
     int exit = 0;
     struct bucket *buc = NULL;
@@ -254,6 +296,9 @@ int run(struct options o) {
     stop_game = false;
     opt = o;
     guess = (char *) malloc(GUESS_SIZE);
+
+    root = *win;
+    refresh();
 
     init_bucket(&buc);
     buc->result = NULL;
@@ -265,26 +310,31 @@ int run(struct options o) {
         r = rand() % (MAX_ANSWER_COUNT);
         challenge = strdup(buc->words[r].value);
 
-        printf("Your word is: %s\n", challenge);
+        wprintw(root, "Your word is: %s\n", challenge);
     }
 
-    printf("Guess a five letter word!\n");
+    wprintw(root, "Guess a five letter word!\n");
+    refresh();
     while (!stop_game) {
         memset(guess, 0, GUESS_SIZE);
 
         exit = get_guess(guess); /* get guess */
-        while (exit != ABSURDLE_OK && exit != GUESS_QUIT && exit != ABSURDLE_WIN && !stop_game) {
+        while (exit != ABSURDLE_OK &&
+               exit != GUESS_QUIT &&
+               exit != ABSURDLE_WIN &&
+               !stop_game) {
             switch (exit) {
                 case GUESS_NOT_WORD:
-                    printf("Not in word list, guess again\n");
+                    wprintw(root, "Not in word list, guess again\n");
                     break;
                 case GUESS_TOO_SHORT:
-                    printf("Your guess was too short!\n");
+                    wprintw(root, "Your guess was too short!\n");
                     break;
                 case GUESS_TOO_LONG:
-                    printf("Your guess was too long!\n");
+                    wprintw(root, "Your guess was too long!\n");
                     break;
             }
+            refresh();
             exit = get_guess(guess); /* get guess */
         }
         if (exit == GUESS_QUIT) continue;
@@ -302,14 +352,15 @@ int run(struct options o) {
                 }
             }
             if (fail) {
-                printf("It is no longer possible for %s to be the secret word!\n",
+                wprintw(root, "It is no longer possible for %s to be the secret word!\n",
                        challenge);
                 return ABSURDLE_WIN;
             }
         }
 win:
         if (!strncmp(buc->result, WIN, GUESS_SIZE-1)) {
-            printf("You win!\n");
+            wprintw(root, "You win!\n");
+            refresh();
             return ABSURDLE_WIN;
         }
     }
@@ -326,7 +377,6 @@ win:
  */
 int stop() {
     stop_game = true;
-
     return 0;
 }
 
