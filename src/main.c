@@ -16,7 +16,8 @@ void read_config(const char *path, struct options *opt) {
          *value;
     FILE *f = fopen(path, "r");
     static struct options o = {
-        .challenge_mode = false
+        .challenge_mode = false,
+        .force_word = true
     };
 
     if (f == NULL) {
@@ -28,6 +29,9 @@ void read_config(const char *path, struct options *opt) {
         value = strtok(NULL, "=");
         if (!strncmp(key, "challenge_mode", 14)) {
             if (!strncmp(value, "true", 4)) o.challenge_mode = true;
+        }
+        if (!strncmp(key, "force_word", 10)) {
+            if (!strncmp(value, "false", 5)) o.force_word = false;
         }
     }
     *opt = (struct options) o;

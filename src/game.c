@@ -30,6 +30,12 @@ enum absurdle_code check_guess(const char *guess) {
     bool found;
     FILE *f;
 
+
+    if (!opt.force_word) {
+        found = true;
+        goto ret;
+    }
+
     f = fopen(DATA_DIR"/answers", "r");
     if (f == NULL) {
         printf("word list file could not be located");
@@ -237,7 +243,6 @@ enum absurdle_code gen_buckets(const char *guess, struct bucket **b) {
     return max_bucket_val;
 }
 
-
 /**
  * start the game
  */
@@ -268,7 +273,7 @@ int run(struct options o) {
         memset(guess, 0, GUESS_SIZE);
 
         exit = get_guess(guess); /* get guess */
-        while (exit != ABSURDLE_OK && exit != GUESS_QUIT && !stop_game) {
+        while (exit != ABSURDLE_OK && exit != GUESS_QUIT && exit != ABSURDLE_WIN && !stop_game) {
             switch (exit) {
                 case GUESS_NOT_WORD:
                     printf("Not in word list, guess again\n");
@@ -283,6 +288,7 @@ int run(struct options o) {
             exit = get_guess(guess); /* get guess */
         }
         if (exit == GUESS_QUIT) continue;
+        if (exit == ABSURDLE_WIN) goto win;
         gen_buckets(guess, &buc); /* generate buckets and select smallest one */
         print_result(buc->result); /* show results to player */
 
@@ -301,6 +307,7 @@ int run(struct options o) {
                 return ABSURDLE_WIN;
             }
         }
+win:
         if (!strncmp(buc->result, WIN, GUESS_SIZE-1)) {
             printf("You win!\n");
             return ABSURDLE_WIN;

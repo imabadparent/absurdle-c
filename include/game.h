@@ -41,6 +41,7 @@ struct bucket {
 
 struct options {
     bool challenge_mode;
+    bool force_word;
 };
 
 int run(struct options options);
