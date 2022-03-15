@@ -12,6 +12,9 @@
 
 bool stop_game;
 
+struct options opt;
+const char *challenge;
+
 void wordlist_free(struct word *list, const size_t size) {
     int i = 0;
 
@@ -26,6 +29,12 @@ enum absurdle_code check_guess(const char *guess) {
     char *word = malloc(GUESS_SIZE);
     bool found;
     FILE *f;
+
+
+    if (!opt.force_word) {
+        found = true;
+        goto ret;
+    }
 
     f = fopen(DATA_DIR"/answers", "r");
     if (f == NULL) {
@@ -234,27 +243,37 @@ enum absurdle_code gen_buckets(const char *guess, struct bucket **b) {
     return max_bucket_val;
 }
 
-
 /**
  * start the game
  */
-int run() {
+int run(struct options o) {
     char *guess = NULL;
     int exit = 0;
     struct bucket *buc = NULL;
 
     stop_game = false;
+    opt = o;
     guess = (char *) malloc(GUESS_SIZE);
 
     init_bucket(&buc);
     buc->result = NULL;
+
+    if (opt.challenge_mode) {
+        int r;
+
+        srand(time(0));
+        r = rand() % (MAX_ANSWER_COUNT);
+        challenge = strdup(buc->words[r].value);
+
+        printf("Your word is: %s\n", challenge);
+    }
 
     printf("Guess a five letter word!\n");
     while (!stop_game) {
         memset(guess, 0, GUESS_SIZE);
 
         exit = get_guess(guess); /* get guess */
-        while (exit != ABSURDLE_OK && exit != GUESS_QUIT && !stop_game) {
+        while (exit != ABSURDLE_OK && exit != GUESS_QUIT && exit != ABSURDLE_WIN && !stop_game) {
             switch (exit) {
                 case GUESS_NOT_WORD:
                     printf("Not in word list, guess again\n");
@@ -269,10 +288,27 @@ int run() {
             exit = get_guess(guess); /* get guess */
         }
         if (exit == GUESS_QUIT) continue;
+        if (exit == ABSURDLE_WIN) goto win;
         gen_buckets(guess, &buc); /* generate buckets and select smallest one */
         print_result(buc->result); /* show results to player */
 
-        if (!strncmp(buc->result, WIN, GUESS_SIZE-1)) { /* check win condition */
+        /* check win/lose condition(s) */
+        if (opt.challenge_mode) {
+            bool fail = true;
+            int i = 0;
+            for (i = 0; i < buc->size; ++i) {
+                if (!strncmp(challenge, buc->words[i].value, GUESS_SIZE)) {
+                    fail = false;
+                }
+            }
+            if (fail) {
+                printf("It is no longer possible for %s to be the secret word!\n",
+                       challenge);
+                return ABSURDLE_WIN;
+            }
+        }
+win:
+        if (!strncmp(buc->result, WIN, GUESS_SIZE-1)) {
             printf("You win!\n");
             return ABSURDLE_WIN;
         }
@@ -281,6 +317,7 @@ int run() {
     wordlist_free(buc->words, buc->size);
     free(buc->result);
     free(buc);
+    if (opt.challenge_mode) free((void *) challenge);
     return ABSURDLE_QUIT;
 }
 

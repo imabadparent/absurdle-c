@@ -39,7 +39,12 @@ struct bucket {
     unsigned long size;
 };
 
-int run();
+struct options {
+    bool challenge_mode;
+    bool force_word;
+};
+
+int run(struct options options);
 int stop();
 
 #endif /* GAME_H */
