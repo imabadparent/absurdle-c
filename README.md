@@ -25,8 +25,7 @@ cmake --install build
 This will install the binary to ``/usr/local/bin`` and install the wordlists to
 ``/usr/local/share/absurlde-c``.
 
-I have not tested Windows or macOS, but I imaghine it would work as long as you
-can use cmake, as I have not used any OS-specific features.
+This works on Linux and macOS. I have not tested it on Windows.
 
 ## How to play
 
