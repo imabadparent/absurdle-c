@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include "game.h"
+#include "screen.h"
+
 #include "config.h"
 
 void read_config(const char *path, struct options *opt) {
@@ -45,9 +47,9 @@ int main(void) {
          *conf_dir = "",
          conf_path[1024] = "";
     struct options opt = { 0 };
-    static WINDOW *win;
+    struct screen *scr;
 
-
+    scr = (struct screen *) malloc(sizeof(struct screen));
 #ifdef USE_XDG_CONF_DIR
     conf_dir = getenv("XDG_CONFIG_HOME");
     if (conf_dir == NULL) {
@@ -61,23 +63,21 @@ int main(void) {
 #endif
     read_config(conf_path, &opt);
 
-    win = initscr();
-
-    while (true) {
-        clear();
-        noecho();
-        refresh();
-        exit = run(opt, &win);
+    scr->root = NULL;
+     while (true) {
+        init(&scr);
+        curs_set(1);
+        exit = run(opt, &scr);
         if (exit == ABSURDLE_WIN) {
-            wprintw(win, "Would you like to play again? [Y/n]\n");
+            mvwprintw(scr->root, scr->row_number*3+1, 0, "Would you like to play again? [Y/n]");
             echo();
             refresh();
-            wgetstr(win, input);
+            wgetstr(scr->root, input);
             if (input[0] == 'N' || input[0] == 'n') break;
         }
         else if (exit == ABSURDLE_QUIT) break;
+        endwin();
     }
-    endwin();
     return EXIT_SUCCESS;
 }
 

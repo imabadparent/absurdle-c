@@ -5,6 +5,7 @@
  */
 
 #include <stdio.h>
+#include <time.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ncurses.h>
@@ -17,8 +18,7 @@ bool stop_game;
 struct options opt;
 const char *challenge;
 
-WINDOW *root;
-int x, y;
+struct screen *screen;
 
 void wordlist_free(struct word *list, const size_t size) {
     int i = 0;
@@ -35,7 +35,6 @@ enum absurdle_code check_guess(const char *guess) {
     bool found;
     FILE *f;
 
-
     if (!opt.force_word) {
         found = true;
         goto ret;
@@ -43,7 +42,7 @@ enum absurdle_code check_guess(const char *guess) {
 
     f = fopen(DATA_DIR"/answers", "r");
     if (f == NULL) {
-        wprintw(root, "word list file could not be located");
+        //wprintw(root, "word list file could not be located");
         return CHECK_NO_LIST;
     }
     while (!feof(f)) {
@@ -57,7 +56,7 @@ enum absurdle_code check_guess(const char *guess) {
 
     f = fopen(DATA_DIR"/words", "r");
     if (f == NULL) {
-        wprintw(root, "answer list file could not be located");
+        //wprintw(root, "answer list file could not be located");
         return CHECK_NO_LIST;
     }
     while (!feof(f)) {
@@ -77,46 +76,45 @@ enum absurdle_code get_guess(char *ret) {
     char c = 0,
          buf[GUESS_SIZE] = "";
     int b = 0,
-        i = 0;
-    bool too_long = false;
+        i = 0,
+        exit = 0;
+    bool too_long = false,
+         new_row = true;
 
     buf[GUESS_SIZE-1] = '\0';
 
-    i = 0;
-    /*for (c = wgetch(root); c != '\0' && c != '\n'; c = wgetch(root)) {
-        //if (feof(stdin)) {
-        //    stop();
-        //    return GUESS_QUIT;
-        //}
-        if (c >= 'A' && c <= 'Z') c = c - 32;
-        if (c < 'a' || c > 'z') continue;
-        if (i >= GUESS_SIZE-1) {
-            too_long = true;
-            break;
-        }
+    if (new_row) {
+        add_row(&screen);
+        curs_set(1);
+        refresh();
+    }
 
-        wprintw(root, "%c", c);
-        buf[i] = c;
-        ++i;
-    }*/
     i = 0;
     while (c != '\n') {
-        b = wgetch(root);
+        if (i < GUESS_SIZE-1) {
+            b = mvwgetch(screen->cur_row[i], 1, 1);
+        } else {
+            curs_set(0);
+            b = getch();
+        }
+
         if (b == 4) {
             stop();
             return ABSURDLE_QUIT;
         }
         if ((char) b == '\n') {
-            waddch(root, b);
-            refresh();
+            if (i < GUESS_SIZE-1) continue;
+            exit = check_guess(buf);
+            if (exit == GUESS_NOT_WORD) {
+                continue;
+            }
+            c = (char) b;
             break;
         }
         if (b == KEY_BACKSPACE || b == KEY_DC || b == 127) {
             if (i <= 0) continue;
-            getyx(root, y, x);
-            wmove(root, y, --x);
-            waddch(root, ' ');
-            wmove(root, y, x);
+            mvwaddch(screen->cur_row[i-1], 1, 1, ' ');
+            curs_set(1);
             --i;
             refresh();
             continue;
@@ -127,33 +125,43 @@ enum absurdle_code get_guess(char *ret) {
         c = (char) b;
         if (c >= 'A' && c <= 'Z') c = c - 32;
         if (c < 'a' || c > 'z') continue;
-        waddch(root, c);
+        mvwaddch(screen->cur_row[i], 1, 1, c);
         buf[i] = c;
+        wrefresh(screen->cur_row[i]);
         refresh();
 
         ++i;
     }
 
-    if (!strncmp(buf, "exit", 4) ||
-        !strncmp(buf, "stop", 4) ||
-        !strncmp(buf, "quit", 4)) {
-            stop();
-            return GUESS_QUIT;
-    }
-
-    if (i < GUESS_SIZE-1) {
-        return GUESS_TOO_SHORT;
-    } else if (too_long) {
-        return GUESS_TOO_LONG;
-    }
     strncpy(ret, buf, GUESS_SIZE);
 
-    return check_guess(ret);
+    return exit;
 }
 
-void print_result(char *res) {
+void print_result(char *guess, char *res) {
     if (res == NULL) return;
-    wprintw(root, "%s\n", res);
+    int i = 0;
+
+    for (i = 0; i < ROW_SIZE && i < GUESS_SIZE; ++i) {
+        switch (res[i]) {
+            case NONE:
+                wattron(screen->cur_row[i], COLOR_PAIR(NONE_COLOR));
+                mvwaddch(screen->cur_row[i], 1, 1, guess[i]);
+                attroff(COLOR_PAIR(NONE_COLOR));
+                break;
+            case PART:
+                wattron(screen->cur_row[i], COLOR_PAIR(PART_COLOR));
+                mvwaddch(screen->cur_row[i], 1, 1, guess[i]);
+                attroff(COLOR_PAIR(PART_COLOR));
+                break;
+            case GOOD:
+                wattron(screen->cur_row[i], COLOR_PAIR(GOOD_COLOR));
+                mvwaddch(screen->cur_row[i], 1, 1, guess[i]);
+                attroff(COLOR_PAIR(GOOD_COLOR));
+                break;
+        }
+        wrefresh(screen->cur_row[i]);
+    }
     refresh();
 }
 
@@ -288,7 +296,7 @@ enum absurdle_code gen_buckets(const char *guess, struct bucket **b) {
 /**
  * start the game
  */
-int run(struct options o, WINDOW **win) {
+int run(struct options o, struct screen **scr) {
     char *guess = NULL;
     int exit = 0;
     struct bucket *buc = NULL;
@@ -297,7 +305,7 @@ int run(struct options o, WINDOW **win) {
     opt = o;
     guess = (char *) malloc(GUESS_SIZE);
 
-    root = *win;
+    screen = *scr;
     refresh();
 
     init_bucket(&buc);
@@ -310,37 +318,19 @@ int run(struct options o, WINDOW **win) {
         r = rand() % (MAX_ANSWER_COUNT);
         challenge = strdup(buc->words[r].value);
 
-        wprintw(root, "Your word is: %s\n", challenge);
+        mvwprintw(screen->root, 0, 0, "Your word is: %s", challenge);
     }
 
-    wprintw(root, "Guess a five letter word!\n");
+    mvwprintw(screen->root, 0, 0, "Guess a five letter word!");
     refresh();
     while (!stop_game) {
         memset(guess, 0, GUESS_SIZE);
 
         exit = get_guess(guess); /* get guess */
-        while (exit != ABSURDLE_OK &&
-               exit != GUESS_QUIT &&
-               exit != ABSURDLE_WIN &&
-               !stop_game) {
-            switch (exit) {
-                case GUESS_NOT_WORD:
-                    wprintw(root, "Not in word list, guess again\n");
-                    break;
-                case GUESS_TOO_SHORT:
-                    wprintw(root, "Your guess was too short!\n");
-                    break;
-                case GUESS_TOO_LONG:
-                    wprintw(root, "Your guess was too long!\n");
-                    break;
-            }
-            refresh();
-            exit = get_guess(guess); /* get guess */
-        }
-        if (exit == GUESS_QUIT) continue;
+        if (exit == GUESS_QUIT) break;
         if (exit == ABSURDLE_WIN) goto win;
         gen_buckets(guess, &buc); /* generate buckets and select smallest one */
-        print_result(buc->result); /* show results to player */
+        print_result(guess, buc->result); /* show results to player */
 
         /* check win/lose condition(s) */
         if (opt.challenge_mode) {
@@ -352,14 +342,15 @@ int run(struct options o, WINDOW **win) {
                 }
             }
             if (fail) {
-                wprintw(root, "It is no longer possible for %s to be the secret word!\n",
+                mvwprintw(screen->root, screen->y-1, 0,
+                        "It is no longer possible for %s to be the secret word!\n",
                        challenge);
                 return ABSURDLE_WIN;
             }
         }
 win:
         if (!strncmp(buc->result, WIN, GUESS_SIZE-1)) {
-            wprintw(root, "You win!\n");
+            mvwprintw(screen->root, screen->y-1, 0, "You win!");
             refresh();
             return ABSURDLE_WIN;
         }

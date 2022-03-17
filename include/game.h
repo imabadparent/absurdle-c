@@ -26,6 +26,8 @@ typedef enum {false, true} bool;
 #define GOOD '!'
 #define WIN  "!!!!!"
 
+#include "screen.h"
+
 enum absurdle_code {
     ABSURDLE_OK,
     ABSURDLE_WIN,
@@ -53,7 +55,7 @@ struct options {
     bool force_word;
 };
 
-int run(struct options options, WINDOW **window);
+int run(struct options options, struct screen **scr);
 int stop();
 
 #endif /* GAME_H */
