@@ -66,10 +66,12 @@ int main(void) {
     scr->root = NULL;
      while (true) {
         init(&scr);
+        init_keyboard(&scr);
         curs_set(1);
         exit = run(opt, &scr);
         if (exit == ABSURDLE_WIN) {
-            mvwprintw(scr->root, scr->row_number*3+1, 0, "Would you like to play again? [Y/n]");
+            curs_set(1);
+            mvwprintw(scr->root, scr->row_number*3+1, 0, "Would you like to play again? [Y/n] ");
             echo();
             refresh();
             wgetstr(scr->root, input);
@@ -78,6 +80,7 @@ int main(void) {
         else if (exit == ABSURDLE_QUIT) break;
         endwin();
     }
+    endwin();
     return EXIT_SUCCESS;
 }
 

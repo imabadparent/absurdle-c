@@ -12,6 +12,7 @@
 
 #include "game.h"
 #include "config.h"
+#include "screen.h"
 
 bool stop_game;
 
@@ -140,26 +141,48 @@ enum absurdle_code get_guess(char *ret) {
 
 void print_result(char *guess, char *res) {
     if (res == NULL) return;
-    int i = 0;
-
+    int i = 0,
+        x = 0,
+        y = 0,
+        freq[26] = { 0 };
+    for (i = 0; i < GUESS_SIZE; ++i) {
+        freq[guess[i]-'a'] = 1;
+    }
     for (i = 0; i < ROW_SIZE && i < GUESS_SIZE; ++i) {
+        get_key_location(guess[i], &y, &x);
         switch (res[i]) {
-            case NONE:
-                wattron(screen->cur_row[i], COLOR_PAIR(NONE_COLOR));
-                mvwaddch(screen->cur_row[i], 1, 1, guess[i]);
-                attroff(COLOR_PAIR(NONE_COLOR));
-                break;
-            case PART:
-                wattron(screen->cur_row[i], COLOR_PAIR(PART_COLOR));
-                mvwaddch(screen->cur_row[i], 1, 1, guess[i]);
-                attroff(COLOR_PAIR(PART_COLOR));
-                break;
             case GOOD:
                 wattron(screen->cur_row[i], COLOR_PAIR(GOOD_COLOR));
                 mvwaddch(screen->cur_row[i], 1, 1, guess[i]);
                 attroff(COLOR_PAIR(GOOD_COLOR));
+                if (freq[guess[i]-'a'] <= 0) break;
+                wattron(screen->keyboard[y][x], COLOR_PAIR(GOOD_COLOR));
+                mvwaddch(screen->keyboard[y][x], 1, 1, guess[i]);
+                attroff(COLOR_PAIR(GOOD_COLOR));
+                --freq[guess[i]-'a'];
+                break;
+            case PART:
+                wattron(screen->cur_row[i], COLOR_PAIR(PART_COLOR));
+                mvwaddch(screen->cur_row[i], 1, 1, guess[i]);
+                attroff(COLOR_PAIR(GOOD_COLOR));
+                if (freq[guess[i]-'a'] <= 0) break;
+                wattron(screen->keyboard[y][x], COLOR_PAIR(PART_COLOR));
+                mvwaddch(screen->keyboard[y][x], 1, 1, guess[i]);
+                attroff(COLOR_PAIR(PART_COLOR));
+                --freq[guess[i]-'a'];
+                break;
+            case NONE:
+                wattron(screen->cur_row[i], COLOR_PAIR(NONE_COLOR));
+                mvwaddch(screen->cur_row[i], 1, 1, guess[i]);
+                attroff(COLOR_PAIR(GOOD_COLOR));
+                if (freq[guess[i]-'a'] <= 0) break;
+                wattron(screen->keyboard[y][x], COLOR_PAIR(NONE_COLOR));
+                mvwaddch(screen->keyboard[y][x], 1, 1, guess[i]);
+                attroff(COLOR_PAIR(NONE_COLOR));
+                --freq[guess[i]-'a'];
                 break;
         }
+        wrefresh(screen->keyboard[y][x]);
         wrefresh(screen->cur_row[i]);
     }
     refresh();
@@ -210,12 +233,12 @@ enum absurdle_code gen_buckets(const char *guess, struct bucket **b) {
             freq[j] = 0;
         }
         for (j = 0; ret->words[i].value[j] != '\0'; ++j) {
-            freq[ret->words[i].value[j]-'a']++;
+            ++freq[ret->words[i].value[j]-'a'];
         }
         for (j = 0; guess[j] != '\0'; ++j) {
             if (guess[j] != ret->words[i].value[j]) continue;
             res[j] = GOOD;
-            freq[guess[j]-'a']--;
+            --freq[guess[j]-'a'];
         }
         for (j = 0; guess[j] != '\0'; ++j) {
             if (res[j] != 0) continue;
