@@ -3,6 +3,8 @@ A remake of the game Absurdle written in ANSI C (C89/C90)
 
 ## How to install
 
+Make sure you have installed ncurses before installing this game.
+
 If you are on Arch Linux, you can download [PKGBUILD](packs/arch/PKGBUILD), and
 run the following command:
 ```sh
@@ -28,23 +30,21 @@ cmake --install build
 This will install the binary to ``/usr/local/bin`` and install the wordlists to
 ``/usr/local/share/absurlde-c``.
 
-This works on Linux and macOS. I have not tested it on Windows.
+This works on Linux and macOS. I have not tested it on Windows, but it likely
+does not work.
 
 ## How to play
 
 The game starts by asking the player to guess a word. The player resonds by
 inputing a 5-letter word. This word is then analysed and a response is given
-(for more info on the analysis, see [How it works](#How-it-works)). The
-response will contain a mixture of '``.``', '``?``', and '``!``'. A '``.``'
-indicates that the corresponding letter in the guessed word is not contained in
-the solution (This is as if the letter were greyed out in Wordle). A '``?``'
-indicates that the corresponding letter is contained in the word, but not in the
-correct position (This is as if the letter were yellow in Wordle). A '``!``'
-indicates that the corresponding letter is contained in the word and in the
-correct position (This is as if the letter were green in Wordle).
-
-TL;DR for Wordle players: '``.``' is grey, '``?``' is yellow, and "``!``" is
-green.
+(for more info on the analysis, see [How it works](#How-it-works)). The response
+mimics Wordle/Absurdle colors: Green means a letter is in the correct place,
+yellow means the letter is in the answer but not in the right place, and grey
+means the letter is in the wrong place. These colors are also reflected on the
+keyboard on the side of the screen to give the player a quick overview of the
+available letters. To undo a guess, the player can press ``,``. When the game
+finishes, the player is asked if they would like to undo their last guess in
+order to continue the game.
 
 ## What it is
 
