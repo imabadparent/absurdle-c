@@ -42,7 +42,8 @@ void read_config(const char *path, struct options *opt) {
 }
 
 int main(void) {
-    int exit = 0;
+    int exit = 0,
+        i = 0;
     char input[4] = "",
          *conf_dir = "",
          conf_path[1024] = "";
@@ -71,7 +72,10 @@ int main(void) {
         exit = run(opt, &scr);
         if (exit == ABSURDLE_WIN) {
             curs_set(1);
-            mvwprintw(scr->root, scr->row_number*3+1, 0, "Would you like to play again? [Y/n] ");
+            for (i = 0; i < getmaxx(scr->root); ++i) {
+                mvwaddch(scr->root, getmaxy(scr->root)-1, i, ' ');
+            }
+            mvwprintw(scr->root, getmaxy(scr->root)-1, 0, "Play again? [Y/n] ");
             echo();
             refresh();
             wgetstr(scr->root, input);

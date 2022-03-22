@@ -18,6 +18,7 @@ bool stop_game;
 
 struct options opt;
 const char *challenge;
+int current_guess = 0;
 
 struct screen *screen;
 
@@ -43,7 +44,6 @@ enum absurdle_code check_guess(const char *guess) {
 
     f = fopen(DATA_DIR"/answers", "r");
     if (f == NULL) {
-        //wprintw(root, "word list file could not be located");
         return CHECK_NO_LIST;
     }
     while (!feof(f)) {
@@ -57,7 +57,6 @@ enum absurdle_code check_guess(const char *guess) {
 
     f = fopen(DATA_DIR"/words", "r");
     if (f == NULL) {
-        //wprintw(root, "answer list file could not be located");
         return CHECK_NO_LIST;
     }
     while (!feof(f)) {
@@ -73,14 +72,13 @@ ret:
     return (found ? ABSURDLE_OK : GUESS_NOT_WORD);
 }
 
-enum absurdle_code get_guess(char *ret) {
+enum absurdle_code get_guess(char *ret, bool new_row) {
     char c = 0,
          buf[GUESS_SIZE] = "";
     int b = 0,
         i = 0,
         exit = 0;
-    bool too_long = false,
-         new_row = true;
+    bool too_long = false;
 
     buf[GUESS_SIZE-1] = '\0';
 
@@ -93,12 +91,15 @@ enum absurdle_code get_guess(char *ret) {
     i = 0;
     while (c != '\n') {
         if (i < GUESS_SIZE-1) {
-            b = mvwgetch(screen->cur_row[i], 1, 1);
+            b = mvwgetch(screen->rows_tail->wins[i], 1, 1);
         } else {
             curs_set(0);
             b = getch();
         }
-
+        if (b == ',') {
+            remove_row(&screen);
+            return GUESS_UNDO;
+        }
         if (b == 4) {
             stop();
             return ABSURDLE_QUIT;
@@ -114,7 +115,7 @@ enum absurdle_code get_guess(char *ret) {
         }
         if (b == KEY_BACKSPACE || b == KEY_DC || b == 127) {
             if (i <= 0) continue;
-            mvwaddch(screen->cur_row[i-1], 1, 1, ' ');
+            mvwaddch(screen->rows_tail->wins[i-1], 1, 1, ' ');
             curs_set(1);
             --i;
             refresh();
@@ -126,9 +127,9 @@ enum absurdle_code get_guess(char *ret) {
         c = (char) b;
         if (c >= 'A' && c <= 'Z') c = c - 32;
         if (c < 'a' || c > 'z') continue;
-        mvwaddch(screen->cur_row[i], 1, 1, c);
+        mvwaddch(screen->rows_tail->wins[i], 1, 1, c);
         buf[i] = c;
-        wrefresh(screen->cur_row[i]);
+        wrefresh(screen->rows_tail->wins[i]);
         refresh();
 
         ++i;
@@ -139,51 +140,83 @@ enum absurdle_code get_guess(char *ret) {
     return exit;
 }
 
-void print_result(char *guess, char *res) {
+void update_keys(const char *guess, const char *res) {
     if (res == NULL) return;
     int i = 0,
         x = 0,
         y = 0,
-        freq[26] = { 0 };
-    for (i = 0; i < GUESS_SIZE; ++i) {
-        freq[guess[i]-'a'] = 1;
-    }
+        val[26] = { 0 };
     for (i = 0; i < ROW_SIZE && i < GUESS_SIZE; ++i) {
         get_key_location(guess[i], &y, &x);
         switch (res[i]) {
             case GOOD:
-                wattron(screen->cur_row[i], COLOR_PAIR(GOOD_COLOR));
-                mvwaddch(screen->cur_row[i], 1, 1, guess[i]);
-                attroff(COLOR_PAIR(GOOD_COLOR));
-                if (freq[guess[i]-'a'] <= 0) break;
+                if (val[guess[i]-'a'] >= 2) break;
                 wattron(screen->keyboard[y][x], COLOR_PAIR(GOOD_COLOR));
                 mvwaddch(screen->keyboard[y][x], 1, 1, guess[i]);
                 attroff(COLOR_PAIR(GOOD_COLOR));
-                --freq[guess[i]-'a'];
+                val[guess[i]-'a'] = 2;
                 break;
             case PART:
-                wattron(screen->cur_row[i], COLOR_PAIR(PART_COLOR));
-                mvwaddch(screen->cur_row[i], 1, 1, guess[i]);
-                attroff(COLOR_PAIR(GOOD_COLOR));
-                if (freq[guess[i]-'a'] <= 0) break;
+                if (val[guess[i]-'a'] >= 1) break;
                 wattron(screen->keyboard[y][x], COLOR_PAIR(PART_COLOR));
                 mvwaddch(screen->keyboard[y][x], 1, 1, guess[i]);
                 attroff(COLOR_PAIR(PART_COLOR));
-                --freq[guess[i]-'a'];
+                val[guess[i]-'a'] = 1;
                 break;
             case NONE:
-                wattron(screen->cur_row[i], COLOR_PAIR(NONE_COLOR));
-                mvwaddch(screen->cur_row[i], 1, 1, guess[i]);
-                attroff(COLOR_PAIR(GOOD_COLOR));
-                if (freq[guess[i]-'a'] <= 0) break;
+                if (val[guess[i]-'a'] > 0) break;
                 wattron(screen->keyboard[y][x], COLOR_PAIR(NONE_COLOR));
                 mvwaddch(screen->keyboard[y][x], 1, 1, guess[i]);
                 attroff(COLOR_PAIR(NONE_COLOR));
-                --freq[guess[i]-'a'];
+                val[guess[i]-'a'] = 0;
                 break;
         }
         wrefresh(screen->keyboard[y][x]);
-        wrefresh(screen->cur_row[i]);
+    }
+}
+
+void print_result(const char *guess, const char *res) {
+    if (res == NULL) return;
+    int i = 0,
+        x = 0,
+        y = 0,
+        val[26] = { 0 };
+    for (i = 0; i < ROW_SIZE && i < GUESS_SIZE; ++i) {
+        get_key_location(guess[i], &y, &x);
+        switch (res[i]) {
+            case GOOD:
+                wattron(screen->rows_tail->wins[i], COLOR_PAIR(GOOD_COLOR));
+                mvwaddch(screen->rows_tail->wins[i], 1, 1, guess[i]);
+                attroff(COLOR_PAIR(GOOD_COLOR));
+                if (val[guess[i]-'a'] >= 2) break;
+                wattron(screen->keyboard[y][x], COLOR_PAIR(GOOD_COLOR));
+                mvwaddch(screen->keyboard[y][x], 1, 1, guess[i]);
+                attroff(COLOR_PAIR(GOOD_COLOR));
+                val[guess[i]-'a'] = 2;
+                break;
+            case PART:
+                wattron(screen->rows_tail->wins[i], COLOR_PAIR(PART_COLOR));
+                mvwaddch(screen->rows_tail->wins[i], 1, 1, guess[i]);
+                attroff(COLOR_PAIR(GOOD_COLOR));
+                if (val[guess[i]-'a'] >= 1) break;
+                wattron(screen->keyboard[y][x], COLOR_PAIR(PART_COLOR));
+                mvwaddch(screen->keyboard[y][x], 1, 1, guess[i]);
+                attroff(COLOR_PAIR(PART_COLOR));
+                val[guess[i]-'a'] = 1;
+                break;
+            case NONE:
+                wattron(screen->rows_tail->wins[i], COLOR_PAIR(NONE_COLOR));
+                mvwaddch(screen->rows_tail->wins[i], 1, 1, guess[i]);
+                attroff(COLOR_PAIR(GOOD_COLOR));
+                if (val[guess[i]-'a'] > 0) break;
+                wattron(screen->keyboard[y][x], COLOR_PAIR(NONE_COLOR));
+                mvwaddch(screen->keyboard[y][x], 1, 1, guess[i]);
+                attroff(COLOR_PAIR(NONE_COLOR));
+                val[guess[i]-'a'] = 0;
+                break;
+        }
+        wrefresh(screen->keyboard[y][x]);
+        wrefresh(screen->rows_tail->wins[i]);
     }
     refresh();
 }
@@ -316,17 +349,49 @@ enum absurdle_code gen_buckets(const char *guess, struct bucket **b) {
     return max_bucket_val;
 }
 
+enum absurdle_code undo_guess(char ***guesses, struct bucket **buc) {
+    struct bucket *b = *buc;
+    char **g = *guesses;
+    int i = 0;
+
+    clear_row(&screen);
+    --current_guess;
+    g[current_guess] = NULL;
+    wordlist_free(b->words, b->size);
+    init_bucket(&b);
+    init_keyboard(&screen);
+    for (i = 0; g[i] != NULL; ++i) {
+        fprintf(stderr, "%d %s\n", i, g[i]);
+        gen_buckets(g[i], &b);
+        update_keys(g[i], b->result);
+        fprintf(stderr, "%d %s %s\n", i, g[i], b->result);
+    }
+
+    *guesses = g;
+    *buc = b;
+    return ABSURDLE_OK;
+}
+
 /**
  * start the game
  */
 int run(struct options o, struct screen **scr) {
-    char *guess = NULL;
-    int exit = 0;
+    char *guess = NULL,
+         input[4] = "",
+         **guesses = NULL,
+         **tmp = NULL;
+    int exit = 0,
+        r = 0,
+        i = 0,
+        guess_list_size = GUESS_LIMIT;
+    bool win = false,
+         new_row = true;
     struct bucket *buc = NULL;
 
     stop_game = false;
     opt = o;
     guess = (char *) malloc(GUESS_SIZE);
+    guesses = (char **) malloc(guess_list_size*sizeof(char *));
 
     screen = *scr;
     refresh();
@@ -335,30 +400,41 @@ int run(struct options o, struct screen **scr) {
     buc->result = NULL;
 
     if (opt.challenge_mode) {
-        int r;
-
         srand(time(0));
         r = rand() % (MAX_ANSWER_COUNT);
         challenge = strdup(buc->words[r].value);
 
         mvwprintw(screen->root, 0, 0, "Your word is: %s", challenge);
+    } else {
+        mvwprintw(screen->root, 0, 0, "Guess a five letter word!");
     }
-
-    mvwprintw(screen->root, 0, 0, "Guess a five letter word!");
     refresh();
+
     while (!stop_game) {
         memset(guess, 0, GUESS_SIZE);
 
-        exit = get_guess(guess); /* get guess */
+        exit = get_guess(guess, new_row); /* get guess */
+        if (exit == GUESS_UNDO) {
+            new_row = false;
+            undo_guess(&guesses, &buc);
+            continue;
+        }
+        else new_row = true;
         if (exit == GUESS_QUIT) break;
-        if (exit == ABSURDLE_WIN) goto win;
+        if (current_guess >= guess_list_size) {
+            guess_list_size *= 2;
+            tmp = (char **) realloc(guesses, guess_list_size*sizeof(char *));
+            if (tmp == NULL) return ABSURDLE_QUIT; /* out of memory */
+            guesses = tmp;
+        }
+        guesses[current_guess] = strdup(guess);
+        ++current_guess;
         gen_buckets(guess, &buc); /* generate buckets and select smallest one */
         print_result(guess, buc->result); /* show results to player */
 
         /* check win/lose condition(s) */
         if (opt.challenge_mode) {
             bool fail = true;
-            int i = 0;
             for (i = 0; i < buc->size; ++i) {
                 if (!strncmp(challenge, buc->words[i].value, GUESS_SIZE)) {
                     fail = false;
@@ -366,19 +442,32 @@ int run(struct options o, struct screen **scr) {
             }
             if (fail) {
                 mvwprintw(screen->root, screen->y-1, 0,
-                        "It is no longer possible for %s to be the secret word!\n",
+                        "It is no longer possible for %s to be the secret word!",
                        challenge);
-                return ABSURDLE_WIN;
+                win = true;
+                goto win;
             }
         }
+        win = !(strncmp(buc->result, WIN, GUESS_SIZE-1));
 win:
-        if (!strncmp(buc->result, WIN, GUESS_SIZE-1)) {
-            mvwprintw(screen->root, screen->y-1, 0, "You win!");
-            refresh();
-            return ABSURDLE_WIN;
+        if (!win) continue;
+        curs_set(1);
+        mvwprintw(screen->root, getmaxy(screen->root)-1, 0, "Undo last guess [y/N] ");
+        echo();
+        refresh();
+        wgetstr(screen->root, input);
+        if (input[0] == 'Y' || input[0] == 'y') {
+            noecho();
+            undo_guess(&guesses, &buc);
+            new_row = false;
+            continue;
         }
+        return ABSURDLE_WIN;
     }
     free(guess);
+    for (i = 0; i < current_guess; ++i) {
+        free(guesses[i]);
+    }
     wordlist_free(buc->words, buc->size);
     free(buc->result);
     free(buc);

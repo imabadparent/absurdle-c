@@ -18,6 +18,8 @@
 typedef enum {false, true} bool;
 
 #define GUESS_SIZE 6
+#define GUESS_LIMIT 32
+
 #define MAX_BUCKETS 243
 #define MAX_ANSWER_COUNT 2312
 
@@ -36,6 +38,7 @@ enum absurdle_code {
     GUESS_NOT_WORD,
     GUESS_TOO_SHORT,
     GUESS_TOO_LONG,
+    GUESS_UNDO,
     CHECK_NO_LIST
 };
 

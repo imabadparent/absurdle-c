@@ -12,18 +12,26 @@
 #define NONE_COLOR 1
 #define PART_COLOR 2
 #define GOOD_COLOR 3
+#define NO_COLOR   4
 
 #define KEYBOARD_ROW_LEN 10
 #define KEYBOARD_ROW_NUM 3
 #define KEYBOARD_OFFSET 20
 
+struct row {
+    WINDOW *wins[ROW_SIZE];
+
+    struct row *next;
+    struct row *prev;
+};
+
 struct screen {
-    WINDOW *root,
-           *cur_row[ROW_SIZE],
-           *keyboard[KEYBOARD_ROW_NUM][KEYBOARD_ROW_LEN];
     int row_number,
         x,
         y;
+    WINDOW *root,
+           *keyboard[KEYBOARD_ROW_NUM][KEYBOARD_ROW_LEN];
+    struct row *rows_tail;
 };
 
 void init(struct screen **screen);

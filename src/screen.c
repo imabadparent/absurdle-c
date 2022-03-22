@@ -5,6 +5,7 @@
  */
 
 #include <ncurses.h>
+#include <stdlib.h>
 #include "screen.h"
 
 void init(struct screen **scr) {
@@ -19,15 +20,15 @@ void init(struct screen **scr) {
     init_pair(NONE_COLOR, COLOR_BLACK, COLOR_WHITE);
     init_pair(PART_COLOR, COLOR_BLACK, COLOR_YELLOW);
     init_pair(GOOD_COLOR, COLOR_BLACK, COLOR_GREEN);
+    init_pair(NO_COLOR, -1, -1);
     getmaxyx(s->root, y, x);
     clear();
     noecho();
-    scrollok(s->root, true);
-    wprintw(s->root, "Absurdle!");
+    scrollok(s->root, false);
     wrefresh(s->root);
 
     s->row_number = 0;
-    s->cur_row[0] = NULL;
+    s->rows_tail = NULL;
     s->keyboard[0][0] = NULL;
 
     *scr = s;
@@ -80,17 +81,49 @@ void get_key_location(char key, int *y, int *x) {
 void add_row(struct screen **scr) {
     struct screen *s = *scr;
     static WINDOW *row[ROW_SIZE] = { 0 };
+    struct row *r = NULL;
     int i = 0;
     int col = s->row_number*3+1;
 
+    r = (struct row *) malloc(sizeof(struct row));
+    r->prev = NULL;
+    r->next = NULL;
+    r->wins[0] = NULL;
+
+    ++s->row_number;
     for (i = 0; i < ROW_SIZE; ++i) {
         row[i] = newwin(3, 3, col, 3*(i));
         box(row[i], 0, 0);
         wrefresh(row[i]);
-        s->cur_row[i] = row[i];
+        r->wins[i] = row[i];
     }
-    ++s->row_number;
+    if (s->rows_tail != NULL) {
+        r->prev = s->rows_tail;
+        s->rows_tail->next = r;
+    }
+    s->rows_tail = r;
     refresh();
+    *scr = s;
+}
+
+void remove_row(struct screen **scr) {
+    int i = 0;
+    struct screen *s = *scr;
+    if (s->rows_tail == NULL || s->rows_tail->prev == NULL) return;
+    struct row *prev = s->rows_tail->prev;
+
+    for (i = 0; i < ROW_SIZE; ++i) {
+        wborder(s->rows_tail->wins[i], ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ');
+        wrefresh(s->rows_tail->wins[i]);
+        delwin(s->rows_tail->wins[i]);
+    }
+    if (s->rows_tail->next != NULL) {
+        s->rows_tail->next->prev = prev;
+    }
+    prev->next = s->rows_tail->next;
+    free(s->rows_tail);
+    s->rows_tail = prev;
+    --s->row_number;
     *scr = s;
 }
 
@@ -99,8 +132,10 @@ void clear_row(struct screen **scr) {
     int i = 0;
 
     for (i = 0; i < ROW_SIZE; ++i) {
-        mvwaddch(s->cur_row[i], 1, 1, ' ');
-        wrefresh(s->cur_row[i]);
+        wattron(s->rows_tail->wins[i], COLOR_PAIR(NO_COLOR));
+        mvwaddch(s->rows_tail->wins[i], 1, 1, ' ');
+        wrefresh(s->rows_tail->wins[i]);
+        wattroff(s->rows_tail->wins[i], COLOR_PAIR(NO_COLOR));
     }
     refresh();
     *scr = s;
