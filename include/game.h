@@ -6,9 +6,20 @@
 #ifndef GAME_H
 #define GAME_H
 
+#ifdef bool
+#undef bool
+#endif
+#ifdef true
+#undef true
+#endif
+#ifdef false
+#undef false
+#endif
 typedef enum {false, true} bool;
 
 #define GUESS_SIZE 6
+#define GUESS_LIMIT 32
+
 #define MAX_BUCKETS 243
 #define MAX_ANSWER_COUNT 2312
 
@@ -16,6 +27,8 @@ typedef enum {false, true} bool;
 #define PART '?'
 #define GOOD '!'
 #define WIN  "!!!!!"
+
+#include "screen.h"
 
 enum absurdle_code {
     ABSURDLE_OK,
@@ -25,6 +38,7 @@ enum absurdle_code {
     GUESS_NOT_WORD,
     GUESS_TOO_SHORT,
     GUESS_TOO_LONG,
+    GUESS_UNDO,
     CHECK_NO_LIST
 };
 
@@ -44,7 +58,7 @@ struct options {
     bool force_word;
 };
 
-int run(struct options options);
+int run(struct options options, struct screen **scr);
 int stop();
 
 #endif /* GAME_H */

@@ -4,10 +4,13 @@
  * @created     : 2022-02-17T08:23:32-0500
  */
 
+#include <ncurses.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "game.h"
+#include "screen.h"
+
 #include "config.h"
 
 void read_config(const char *path, struct options *opt) {
@@ -39,13 +42,15 @@ void read_config(const char *path, struct options *opt) {
 }
 
 int main(void) {
-    int exit = 0;
+    int exit = 0,
+        i = 0;
     char input[4] = "",
          *conf_dir = "",
          conf_path[1024] = "";
     struct options opt = { 0 };
+    struct screen *scr;
 
-
+    scr = (struct screen *) malloc(sizeof(struct screen));
 #ifdef USE_XDG_CONF_DIR
     conf_dir = getenv("XDG_CONFIG_HOME");
     if (conf_dir == NULL) {
@@ -59,15 +64,27 @@ int main(void) {
 #endif
     read_config(conf_path, &opt);
 
-    while (true) {
-        exit = run(opt);
+    scr->root = NULL;
+     while (true) {
+        init(&scr);
+        init_keyboard(&scr);
+        curs_set(1);
+        exit = run(opt, &scr);
         if (exit == ABSURDLE_WIN) {
-            printf("Would you like to play again? [Y/n]\n");
-            fgets(input, 4, stdin);
+            curs_set(1);
+            for (i = 0; i < getmaxx(scr->root); ++i) {
+                mvwaddch(scr->root, getmaxy(scr->root)-1, i, ' ');
+            }
+            mvwprintw(scr->root, getmaxy(scr->root)-1, 0, "Play again? [Y/n] ");
+            echo();
+            refresh();
+            wgetstr(scr->root, input);
             if (input[0] == 'N' || input[0] == 'n') break;
         }
         else if (exit == ABSURDLE_QUIT) break;
+        endwin();
     }
+    endwin();
     return EXIT_SUCCESS;
 }
 

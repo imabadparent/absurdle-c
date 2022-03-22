@@ -16,7 +16,8 @@ endif()
 
 configure_file(config.h.in config.h)
 
-add_executable(absurdle src/main.c src/game.c)
+add_executable(absurdle src/main.c src/game.c src/screen.c)
+target_link_libraries(absurdle "ncurses")
 install(TARGETS absurdle DESTINATION bin)
 install(FILES lists/answers lists/words DESTINATION share/absurdle-c)
 
