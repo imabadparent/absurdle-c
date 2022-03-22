@@ -225,7 +225,7 @@ enum absurdle_code init_bucket(struct bucket **b) {
     int i = 0;
     FILE *f = NULL;
     char word[GUESS_SIZE+2] = "";
-    static struct bucket *buc;
+    struct bucket *buc;
 
     buc = (struct bucket *) malloc(sizeof(struct bucket));
     buc->words = (struct word *) malloc(MAX_ANSWER_COUNT * sizeof(struct word));
@@ -341,6 +341,7 @@ enum absurdle_code gen_buckets(const char *guess, struct bucket **b) {
         ++j;
     }
     wordlist_free(ret->words, ret->size);
+    free(ret->result);
     ret->words = ret_words;
     ret->result = strdup(res);
     ret->size = j;
@@ -356,15 +357,16 @@ enum absurdle_code undo_guess(char ***guesses, struct bucket **buc) {
 
     clear_row(&screen);
     --current_guess;
+    free(g[current_guess]);
     g[current_guess] = NULL;
     wordlist_free(b->words, b->size);
+    free(b->result);
+    free(b);
     init_bucket(&b);
     init_keyboard(&screen);
     for (i = 0; g[i] != NULL; ++i) {
-        fprintf(stderr, "%d %s\n", i, g[i]);
         gen_buckets(g[i], &b);
         update_keys(g[i], b->result);
-        fprintf(stderr, "%d %s %s\n", i, g[i], b->result);
     }
 
     *guesses = g;
@@ -457,22 +459,26 @@ win:
         refresh();
         wgetstr(screen->root, input);
         if (input[0] == 'Y' || input[0] == 'y') {
+            for (i = 0; i < getmaxx(screen->root); ++i) {
+                mvwaddch(screen->root, getmaxy(screen->root)-1, i, ' ');
+            }
             noecho();
             undo_guess(&guesses, &buc);
             new_row = false;
             continue;
         }
-        return ABSURDLE_WIN;
+        break;
     }
     free(guess);
     for (i = 0; i < current_guess; ++i) {
         free(guesses[i]);
     }
+    free(guesses);
     wordlist_free(buc->words, buc->size);
     free(buc->result);
     free(buc);
     if (opt.challenge_mode) free((void *) challenge);
-    return ABSURDLE_QUIT;
+    return (win ? ABSURDLE_WIN : ABSURDLE_QUIT);
 }
 
 /**
