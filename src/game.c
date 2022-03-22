@@ -361,10 +361,8 @@ enum absurdle_code undo_guess(char ***guesses, struct bucket **buc) {
     init_bucket(&b);
     init_keyboard(&screen);
     for (i = 0; g[i] != NULL; ++i) {
-        fprintf(stderr, "%d %s\n", i, g[i]);
         gen_buckets(g[i], &b);
         update_keys(g[i], b->result);
-        fprintf(stderr, "%d %s %s\n", i, g[i], b->result);
     }
 
     *guesses = g;
