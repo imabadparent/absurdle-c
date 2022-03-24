@@ -97,6 +97,7 @@ enum absurdle_code get_guess(char *ret, bool new_row) {
             b = getch();
         }
         if (b == ',') {
+            if (screen->row_number <= 1 || current_guess == 0) continue;
             remove_row(&screen);
             return GUESS_UNDO;
         }
