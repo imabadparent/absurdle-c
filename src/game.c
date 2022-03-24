@@ -225,10 +225,11 @@ enum absurdle_code init_bucket(struct bucket **b) {
     int i = 0;
     FILE *f = NULL;
     char word[GUESS_SIZE+2] = "";
-    struct bucket *buc;
+    static struct bucket *buc;
 
     buc = (struct bucket *) malloc(sizeof(struct bucket));
     buc->words = (struct word *) malloc(MAX_ANSWER_COUNT * sizeof(struct word));
+    buc->result = NULL;
 
     f = fopen(DATA_DIR"/answers", "r");
     if (f == NULL) {
@@ -360,7 +361,6 @@ enum absurdle_code undo_guess(char ***guesses, struct bucket **buc) {
     free(g[current_guess]);
     g[current_guess] = NULL;
     wordlist_free(b->words, b->size);
-    free(b->result);
     free(b);
     init_bucket(&b);
     init_keyboard(&screen);
