@@ -24,8 +24,6 @@ followed by this command run as root
 ```sh
 cmake --install build
 ```
-(To clone the dev branch instead, use 
-``git clone -b dev https://github.com/imabadparent/absurdle-c.git``)
 
 This will install the binary to ``/usr/local/bin`` and install the wordlists to
 ``/usr/local/share/absurlde-c``.
