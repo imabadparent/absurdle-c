@@ -113,6 +113,7 @@ void remove_row(struct screen **scr) {
     struct row *prev = s->rows_tail->prev;
 
     for (i = 0; i < ROW_SIZE; ++i) {
+        mvwaddch(s->rows_tail->wins[i], 1, 1, ' ');
         wborder(s->rows_tail->wins[i], ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ');
         wrefresh(s->rows_tail->wins[i]);
         delwin(s->rows_tail->wins[i]);

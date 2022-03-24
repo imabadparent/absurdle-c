@@ -415,6 +415,7 @@ int run(struct options o, struct screen **scr) {
 
     while (!stop_game) {
         memset(guess, 0, GUESS_SIZE);
+        curs_set(1);
 
         exit = get_guess(guess, new_row); /* get guess */
         if (exit == GUESS_UNDO) {
