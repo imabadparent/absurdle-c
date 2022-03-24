@@ -83,7 +83,8 @@ void add_row(struct screen **scr) {
     static WINDOW *row[ROW_SIZE] = { 0 };
     struct row *r = NULL;
     int i = 0;
-    int col = s->row_number*3+1;
+    int y = s->row_number*3+1;
+    int overflow = getmaxy(s->root)/3;
 
     r = (struct row *) malloc(sizeof(struct row));
     r->prev = NULL;
@@ -92,7 +93,7 @@ void add_row(struct screen **scr) {
 
     ++s->row_number;
     for (i = 0; i < ROW_SIZE; ++i) {
-        row[i] = newwin(3, 3, col, 3*(i));
+        row[i] = newwin(3, 3, y%overflow, 3*(i));
         box(row[i], 0, 0);
         wrefresh(row[i]);
         r->wins[i] = row[i];
