@@ -6,6 +6,7 @@
 
 #include <ncurses.h>
 #include <stdlib.h>
+#include "game.h"
 #include "screen.h"
 
 void init(struct screen **scr) {
@@ -83,8 +84,8 @@ void add_row(struct screen **scr) {
     static WINDOW *row[ROW_SIZE] = { 0 };
     struct row *r = NULL;
     int i = 0;
-    int y = s->row_number*3+1;
-    int overflow = getmaxy(s->root)/3;
+    int y = 0;
+    int overflow = (getmaxy(s->root)-1)/3;
 
     r = (struct row *) malloc(sizeof(struct row));
     r->prev = NULL;
@@ -93,7 +94,8 @@ void add_row(struct screen **scr) {
 
     ++s->row_number;
     for (i = 0; i < ROW_SIZE; ++i) {
-        row[i] = newwin(3, 3, y%overflow, 3*(i));
+        y = (s->row_number-1)%overflow*3+1;
+        row[i] = newwin(3, 3, y, 3*(i));
         box(row[i], 0, 0);
         wrefresh(row[i]);
         r->wins[i] = row[i];
@@ -104,6 +106,52 @@ void add_row(struct screen **scr) {
     }
     s->rows_tail = r;
     refresh();
+    *scr = s;
+}
+
+void redraw_row(struct screen **scr, int rownum, const char *g, const char *res) {
+    struct screen *s = *scr;
+    struct row *r = s->rows_tail;
+    int i = 0;
+    int y = 0;
+    int overflow = (getmaxy(s->root)-1)/3;
+
+    if (rownum > s->row_number) {
+        return;
+    }
+    while (r != NULL) {
+        if (i == rownum) break;
+        ++i;
+        r = r->prev;
+    }
+    fprintf(stderr, "%d\n", i);
+
+    for (i = 0; i < ROW_SIZE; ++i) {
+        if (rownum == 0) y = overflow*3-2;
+        else y = (rownum)%overflow*3+1;
+        delwin(r->wins[i]);
+        r->wins[i] = newwin(3, 3, y, 3*(i));
+        box(r->wins[i], 0, 0);
+        switch (res[i]) {
+            case GOOD:
+                wattron(r->wins[i], COLOR_PAIR(GOOD_COLOR));
+                mvwaddch(r->wins[i], 1, 1, g[i]);
+                wattroff(r->wins[i], COLOR_PAIR(GOOD_COLOR));
+                break;
+            case PART:
+                wattron(r->wins[i], COLOR_PAIR(PART_COLOR));
+                mvwaddch(r->wins[i], 1, 1, g[i]);
+                wattroff(r->wins[i], COLOR_PAIR(PART_COLOR));
+                break;
+            case NONE:
+                wattron(r->wins[i], COLOR_PAIR(NONE_COLOR));
+                mvwaddch(r->wins[i], 1, 1, g[i]);
+                wattroff(r->wins[i], COLOR_PAIR(NONE_COLOR));
+                break;
+        }
+        wrefresh(r->wins[i]);
+    }
+
     *scr = s;
 }
 
@@ -127,6 +175,28 @@ void remove_row(struct screen **scr) {
     s->rows_tail = prev;
     --s->row_number;
     *scr = s;
+}
+
+void remove_all_rows(struct screen **scr) {
+    int i = 0;
+    struct screen *s = *scr;
+    for (i = 0; i < s->row_number; ++i) {
+        remove_row(&s);
+    }
+    if (s->rows_tail == NULL) {
+        fprintf(stderr, "ummm\n");
+        return;
+    }
+    for (i = 0; i < ROW_SIZE; ++i) {
+        mvwaddch(s->rows_tail->wins[i], 1, 1, ' ');
+        wborder(s->rows_tail->wins[i], ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ');
+        wrefresh(s->rows_tail->wins[i]);
+        delwin(s->rows_tail->wins[i]);
+    }
+    free(s->rows_tail);
+    s->rows_tail = NULL;
+    *scr = s;
+
 }
 
 void clear_row(struct screen **scr) {

@@ -37,6 +37,8 @@ struct screen {
 void init(struct screen **screen);
 void init_keyboard(struct screen **screen);
 void add_row(struct screen **screen);
+void remove_row(struct screen **screen);
+void remove_all_row(struct screen **screen);
 void clear_row(struct screen **screen);
 void get_key_location(char key, int *y, int *x);
 

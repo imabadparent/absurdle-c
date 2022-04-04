@@ -198,7 +198,7 @@ void print_result(const char *guess, const char *res) {
             case PART:
                 wattron(screen->rows_tail->wins[i], COLOR_PAIR(PART_COLOR));
                 mvwaddch(screen->rows_tail->wins[i], 1, 1, guess[i]);
-                attroff(COLOR_PAIR(GOOD_COLOR));
+                attroff(COLOR_PAIR(PART_COLOR));
                 if (val[guess[i]-'a'] >= 1) break;
                 wattron(screen->keyboard[y][x], COLOR_PAIR(PART_COLOR));
                 mvwaddch(screen->keyboard[y][x], 1, 1, guess[i]);
@@ -208,7 +208,7 @@ void print_result(const char *guess, const char *res) {
             case NONE:
                 wattron(screen->rows_tail->wins[i], COLOR_PAIR(NONE_COLOR));
                 mvwaddch(screen->rows_tail->wins[i], 1, 1, guess[i]);
-                attroff(COLOR_PAIR(GOOD_COLOR));
+                attroff(COLOR_PAIR(NONE_COLOR));
                 if (val[guess[i]-'a'] > 0) break;
                 wattron(screen->keyboard[y][x], COLOR_PAIR(NONE_COLOR));
                 mvwaddch(screen->keyboard[y][x], 1, 1, guess[i]);
@@ -356,15 +356,20 @@ enum absurdle_code undo_guess(char ***guesses, struct bucket **buc) {
     struct bucket *b = *buc;
     char **g = *guesses;
     int i = 0;
+    int overflow = (getmaxy(screen->root)-1)/3;
+    int prev_guess = current_guess--;
 
     clear_row(&screen);
-    --current_guess;
     free(g[current_guess]);
     g[current_guess] = NULL;
     wordlist_free(b->words, b->size);
     free(b);
     init_bucket(&b);
     init_keyboard(&screen);
+    fprintf(stderr, "prev guess: %d\n", prev_guess);
+    fprintf(stderr, "current guess: %d\n", current_guess);
+    fprintf(stderr, "overflow: %d\n", overflow);
+    if (prev_guess >= overflow) redraw_row(&screen, prev_guess-overflow, g[prev_guess-overflow], "??.??");
     for (i = 0; g[i] != NULL; ++i) {
         gen_buckets(g[i], &b);
         update_keys(g[i], b->result);

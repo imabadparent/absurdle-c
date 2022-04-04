@@ -65,11 +65,13 @@ int main(void) {
     read_config(conf_path, &opt);
 
     scr->root = NULL;
-     while (true) {
+    while (true) {
         init(&scr);
         init_keyboard(&scr);
         curs_set(1);
         exit = run(opt, &scr);
+        remove_all_rows(&scr);
+        refresh();
         if (exit == ABSURDLE_WIN) {
             curs_set(1);
             for (i = 0; i < getmaxx(scr->root); ++i) {
