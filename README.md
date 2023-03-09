@@ -48,7 +48,7 @@ order to continue the game.
 
 This is a clone of the game [Absurdle](https://qntm.org/absurdle), which itself
 is a take on the game [Wordle](https://www.nytimes.com/games/wordle/index.html).
-This is my second project in C, and was mainly made as a learning experience.
+This is my second project in C and was mainly made as a learning experience.
 
 ## How it works
 
