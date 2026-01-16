@@ -10,7 +10,6 @@ run the following command:
 ```sh
 makepkg -sci
 ```
-Feel free to submit this to the AUR, but I likely won't.
 
 If you are on another version of Linux, or would rather build the program
 yourself, you can use git and cmake to build it with the following commands:
